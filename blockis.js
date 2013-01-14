@@ -76,7 +76,9 @@ Engine = function(aCtx) {
           break;
         case 105:
           // i character. Harddrop
-          self.harddrop();
+          matrix.harddrop(tetrimino);
+          tetrimino = nextTetrimino();
+          tetrimino.paint();
           console.log("Harddrop");
           break;
         case 106:
@@ -115,7 +117,7 @@ Engine = function(aCtx) {
       }
     } else {
       switch (event.charCode) {
-        case 32:
+        case 0:
           self.start();
           break;
         default:
@@ -157,28 +159,6 @@ Engine = function(aCtx) {
     }
     tetrimino.erase();
     tetrimino.updateVerticalPos();
-    tetrimino.paint();
-  };
-
-  this.harddrop = function() {
-    tetrimino.erase();
-
-    for(var i = 0; i < matrix.matrix.length; i++) {
-      var retval = matrix.bottomSideCollisionCheck(tetrimino);
-      if(retval) {
-        tetrimino.paint();
-        matrix.lockdown(tetrimino);
-
-        var nLinesRemoved = matrix.removeCompleteLines();
-        if(nLinesRemoved) {
-          console.log("Cleared %d lines (harddrop).", nLinesRemoved);
-          matrix.paint();
-        }
-        break;
-      }
-      tetrimino.updateVerticalPos();
-    }
-    tetrimino = nextTetrimino();
     tetrimino.paint();
   };
 
@@ -254,10 +234,10 @@ Tetrimino = function(type) {
 
   this.erase = function() {
     // Clear the old position.
-    for(var row = 0; row < 4; row++) {
-      for(var col = 0; col < 4; col++) {
-        if(this.vblock[row][col] > 0) {
-          context.drawImage(backgroundBlock, (this.offsetCol + col) * SQUARE_SIDE_PIXLES, (this.offsetRow + row) * SQUARE_SIDE_PIXLES);
+    for(var i = 0; i < 4; i++) {
+      for(var j = 0; j < 4; j++) {
+        if(this.vblock[i][j] > 0) {
+          context.drawImage(backgroundBlock, (this.offsetCol + j) * SQUARE_SIDE_PIXLES, (this.offsetRow + i) * SQUARE_SIDE_PIXLES);
         }
       }
     }
@@ -266,15 +246,15 @@ Tetrimino = function(type) {
   // Paint the block on screen.
   this.paint = function() {
 
-    var row;
-    var col;
+    var i;
+    var j;
 
     // Paint the new position
-    for( row = 0; row < 4; row++) {
-      for( col = 0; col < 4; col++) {
-        if(this.vblock[row][col] > 0) {
-          var blockType = this.vblock[row][col];
-          context.drawImage(this.getImageForType(blockType), (this.offsetCol + col) * SQUARE_SIDE_PIXLES, (this.offsetRow + row) * SQUARE_SIDE_PIXLES);
+    for(i = 0; i < 4; i++) {
+      for(j = 0; j < 4; j++) {
+        if(this.vblock[i][j] > 0) {
+          var blockType = this.vblock[i][j];
+          context.drawImage(this.getImageForType(blockType), (this.offsetCol + j) * SQUARE_SIDE_PIXLES, (this.offsetRow + i) * SQUARE_SIDE_PIXLES);
         }
       }
     }
@@ -386,6 +366,8 @@ Tetrimino.prototype = {
 // The matrix in which the blocks falls down.
 Matrix = function() {
 
+  var self = this;
+
   var state = [[8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
@@ -421,15 +403,35 @@ Matrix = function() {
     }
   };
 
+  this.harddrop = function(tetrimino) {
+    tetrimino.erase();
+
+    for(var i = 0; i < state.length; i++) {
+      var retval = self.bottomSideCollisionCheck(tetrimino);
+      if(retval) {
+        tetrimino.paint();
+        self.lockdown(tetrimino);
+
+        var nLinesRemoved = self.removeCompleteLines();
+        if(nLinesRemoved) {
+          console.log("Cleared %d lines (harddrop).", nLinesRemoved);
+          self.paint();
+        }
+        break;
+      }
+      tetrimino.updateVerticalPos();
+    }
+  };
+
     // vblock = virtual block. The 4x4 square that holds whatever block is in play.
     // pos_x === 0:leftmost (from the viewer) column in vblock
     // pos_y === 0: lowest row in vblock
   this.bottomSideCollisionCheck = function(tetrimino) {
 
-    for(var row = 0; row < 4; row++) {
-      for(var col = 0; col < 4; col++) {
-        if(tetrimino.vblock[row][col] > 0 &&
-           state[tetrimino.offsetRow + row + 1][tetrimino.offsetCol + col] > 0) {
+    for(var i = 0; i < 4; i++) {
+      for(var j = 0; j < 4; j++) {
+        if(tetrimino.vblock[i][j] > 0 &&
+           state[tetrimino.offsetRow + i + 1][tetrimino.offsetCol + j] > 0) {
           // true
           return 1;
         }
@@ -465,7 +467,7 @@ Matrix = function() {
     return 0;
   };
 
-  this.overlappingCollisionCheck = function(prerotatedTetrimino) {
+  this.overlappingCollisionCheck = function(tetrimino) {
     for(var row = 0; row < 4; row++) {
       for(var col = 0; col < 4; col++) {
         if(tetrimino.prerotatedVblock[row][col] > 0 &&
