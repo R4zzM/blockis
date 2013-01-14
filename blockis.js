@@ -397,7 +397,7 @@ Matrix = function() {
     for(var i = 0; i < 4; i++) {
       for(var j = 0; j < 4; j++) {
         if(tetrimino.vblock[i][j] > 0) {
-          state[row + i][col + j] += tetrimino.vblock[i][j];
+          state[row + i][col + j] = tetrimino.vblock[i][j];
         }
       }
     }
@@ -407,10 +407,10 @@ Matrix = function() {
     tetrimino.erase();
 
     for(var i = 0; i < state.length; i++) {
-      var retval = self.bottomSideCollisionCheck(tetrimino);
-      if(retval) {
-        tetrimino.paint();
+      var collision = self.bottomSideCollisionCheck(tetrimino);
+      if(collision) {
         self.lockdown(tetrimino);
+        tetrimino.paint();
 
         var nLinesRemoved = self.removeCompleteLines();
         if(nLinesRemoved) {
@@ -418,8 +418,9 @@ Matrix = function() {
           self.paint();
         }
         break;
+      } else {
+        tetrimino.updateVerticalPos();  
       }
-      tetrimino.updateVerticalPos();
     }
   };
 
