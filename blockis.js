@@ -28,19 +28,21 @@ zBlock.src = "img_Z.png";
 
 // Constants
 var SQUARE_SIDE_PIXLES = 20;
-var BLOCK_SPAWN_ROW = 0;
-var BLOCK_SPAWN_COL = 3;
+var BLOCK_SPAWN_ROW    = 0;
+var BLOCK_SPAWN_COL    = 3;
 var TIME_BETWEEN_TICKS = 125; // millis
 
 Engine = function(aCtx) {
 
   var self = this;
 
-  var ctx = aCtx;
-  var matrix = null;
-  var tetrimino = null;
-  var timer = null;
-  var started = 0;
+  var ctx               = aCtx;
+  var matrix            = null;
+  var tetrimino         = null;
+  var timer             = null;
+  var started           = 0;
+  var harddrop          = 0;
+  var timerTickInterval = 0;
 
   this.handleKeyPress = function(event) {
 
@@ -76,9 +78,11 @@ Engine = function(aCtx) {
           break;
         case 105:
           // i character. Harddrop
-          matrix.harddrop(tetrimino);
-          tetrimino = nextTetrimino();
-          tetrimino.paint();
+          harddrop = 1;
+          self.enterHarddropMode();
+          // matrix.harddrop(tetrimino);
+          // tetrimino = nextTetrimino();
+          // tetrimino.paint();
           console.log("Harddrop");
           break;
         case 106:
@@ -133,14 +137,18 @@ Engine = function(aCtx) {
   };
 
   this.onTimerTick = function() {
-    var retval = matrix.bottomSideCollisionCheck(tetrimino);
-    if(retval) {
+    var collision = matrix.bottomSideCollisionCheck(tetrimino);
+    if(collision) {
       matrix.lockdown(tetrimino);
 
       var nLinesRemoved = matrix.removeCompleteLines();
       if(nLinesRemoved) {
         console.log("Cleared %d lines! (timertick)", nLinesRemoved);
         matrix.paint();
+      }
+
+      if (harddrop) {
+        self.leaveHarddropMode();
       }
       
       tetrimino = self.nextTetrimino();
@@ -155,18 +163,18 @@ Engine = function(aCtx) {
       } else {
         tetrimino.revokeRotation();
       }
-
+    } else {
+      tetrimino.erase();
+      tetrimino.updateVerticalPos();
+      tetrimino.paint();
     }
-    tetrimino.erase();
-    tetrimino.updateVerticalPos();
-    tetrimino.paint();
   };
 
   this.start = function() {
     tetrimino = self.nextTetrimino();
     tetrimino.paint();
-    timer = setInterval(self.onTimerTick,
-      TIME_BETWEEN_TICKS);
+    timerTickInterval = TIME_BETWEEN_TICKS;
+    timer = setInterval(self.onTimerTick, timerTickInterval);
     started = 1;
     console.log("Blockis: The game has started!");
   };
@@ -175,6 +183,21 @@ Engine = function(aCtx) {
     clearInterval(timer);
     started = 0;
     console.log("Blockis: The game has stopped!");
+  };
+
+  this.changeTimerTickInterval = function(interval) {
+    clearInterval(timer);
+    timer = setInterval(self.onTimerTick, interval);
+  };
+
+  this.enterHarddropMode = function() {
+    harddrop = 1;
+    self.changeTimerTickInterval(1);
+  };
+
+  this.leaveHarddropMode = function() {
+    harddrop = 0;
+    self.changeTimerTickInterval(timerTickInterval);
   };
 
   this.init = function() {
@@ -188,13 +211,13 @@ Engine = function(aCtx) {
 // A (virtual) block that the player is controlling
 Tetrimino = function(type) {
 
-  this.offsetRow = 0;
-  this.offsetCol = 3;
+  this.offsetRow     = 0;
+  this.offsetCol     = 3;
   this.lastOffsetRow = 0;
   this.lastOffsetCol = 3;
 
-  this.type = type;
-  this.vblock = this.getDataForType(this.type);
+  this.type             = type;
+  this.vblock           = this.getDataForType(this.type);
   this.prerotatedVblock = [[0, 0, 0, 0],
                            [0, 0, 0, 0],
                            [0, 0, 0, 0],
@@ -368,7 +391,7 @@ Matrix = function() {
 
   var self = this;
 
-  var state = [[8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
+  var matrix = [[8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
@@ -397,29 +420,8 @@ Matrix = function() {
     for(var i = 0; i < 4; i++) {
       for(var j = 0; j < 4; j++) {
         if(tetrimino.vblock[i][j] > 0) {
-          state[row + i][col + j] = tetrimino.vblock[i][j];
+          matrix[row + i][col + j] = tetrimino.vblock[i][j];
         }
-      }
-    }
-  };
-
-  this.harddrop = function(tetrimino) {
-    tetrimino.erase();
-
-    for(var i = 0; i < state.length; i++) {
-      var collision = self.bottomSideCollisionCheck(tetrimino);
-      if(collision) {
-        self.lockdown(tetrimino);
-        tetrimino.paint();
-
-        var nLinesRemoved = self.removeCompleteLines();
-        if(nLinesRemoved) {
-          console.log("Cleared %d lines (harddrop).", nLinesRemoved);
-          self.paint();
-        }
-        break;
-      } else {
-        tetrimino.updateVerticalPos();  
       }
     }
   };
@@ -432,7 +434,7 @@ Matrix = function() {
     for(var i = 0; i < 4; i++) {
       for(var j = 0; j < 4; j++) {
         if(tetrimino.vblock[i][j] > 0 &&
-           state[tetrimino.offsetRow + i + 1][tetrimino.offsetCol + j] > 0) {
+           matrix[tetrimino.offsetRow + i + 1][tetrimino.offsetCol + j] > 0) {
           // true
           return 1;
         }
@@ -446,7 +448,7 @@ Matrix = function() {
     for(var row = 0; row < 4; row++) {
       for(var col = 0; col < 4; col++) {
         if(tetrimino.vblock[row][col] > 0 && 
-           state[tetrimino.offsetRow + row][tetrimino.offsetCol + col + 1] > 0) {
+           matrix[tetrimino.offsetRow + row][tetrimino.offsetCol + col + 1] > 0) {
           // true
           return 1;
         }
@@ -459,7 +461,7 @@ Matrix = function() {
     for(var row = 0; row < 4; row++) {
       for(var col = 0; col < 4; col++) {
         if(tetrimino.vblock[row][col] > 0 &&
-           state[tetrimino.offsetRow + row][tetrimino.offsetCol + col - 1] > 0) {
+           matrix[tetrimino.offsetRow + row][tetrimino.offsetCol + col - 1] > 0) {
           // true
           return 1;
         }
@@ -472,7 +474,7 @@ Matrix = function() {
     for(var row = 0; row < 4; row++) {
       for(var col = 0; col < 4; col++) {
         if(tetrimino.prerotatedVblock[row][col] > 0 &&
-           state[tetrimino.offsetRow + row][tetrimino.offsetCol + col] > 0) {
+           matrix[tetrimino.offsetRow + row][tetrimino.offsetCol + col] > 0) {
           // true
           return 1;
         }
@@ -482,18 +484,18 @@ Matrix = function() {
   };
 
   this.removeCompleteLines = function() {
-    var removeRow = 0;
+    var removeRow    = 0;
     var nRowsRemoved = 0;
 
     var row = 0;
     var col = 0;
 
-    for( row = 0; row < state.length - 1; row++) {
+    for(row = 0; row < matrix.length - 1; row++) {
 
       removeRow = 1;
 
       for( col = 1; col < 11; col++) {
-        if(!state[row][col]) {
+        if(!matrix[row][col]) {
           removeRow = 0;
           break;
         }
@@ -504,11 +506,11 @@ Matrix = function() {
 
         for(var i = row; i > 0; i--) {
           for(var j = 1; j < 11; j++) {
-            state[i][j] = state[i - 1][j];
+            matrix[i][j] = matrix[i - 1][j];
           }
         }
         // add a "clean" row on the top of the matrix
-        state[0] = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8];
+        matrix[0] = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8];
 
         nRowsRemoved++;
       }
@@ -519,25 +521,25 @@ Matrix = function() {
   };
 
   this.paint = function() {
-    for(var row = 0; row < state.length; row++) {
-      for(var col = 0; col < state[row].length; col++) {
-        if(state[row][col] === 0) {
+    for(var row = 0; row < matrix.length; row++) {
+      for(var col = 0; col < matrix[row].length; col++) {
+        if(matrix[row][col] === 0) {
           context.drawImage(backgroundBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 1) {
+        } else if(matrix[row][col] === 1) {
           context.drawImage(iBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 2) {
+        } else if(matrix[row][col] === 2) {
           context.drawImage(tBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 3) {
+        } else if(matrix[row][col] === 3) {
           context.drawImage(jBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 4) {
+        } else if(matrix[row][col] === 4) {
           context.drawImage(lBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 5) {
+        } else if(matrix[row][col] === 5) {
           context.drawImage(oBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 6) {
+        } else if(matrix[row][col] === 6) {
           context.drawImage(sBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 7) {
+        } else if(matrix[row][col] === 7) {
           context.drawImage(zBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-        } else if(state[row][col] === 8) {
+        } else if(matrix[row][col] === 8) {
           context.drawImage(borderBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
         }
       }
