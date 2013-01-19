@@ -6,12 +6,13 @@ Blockis = function() {
   var BLOCK_SPAWN_COL    = 3;
   var TIME_BETWEEN_TICKS = 125; // millis
 
-  Engine = function(aGraphics, aGameConfig) {
+  Engine = function(aGraphics, aAudioManager, aGameConfig) {
 
     var self = this;
 
     var gameConfig        = aGameConfig;
     var graphics          = aGraphics;
+    var audioManager      = aAudioManager;
     var matrix            = null;
     var tetrimino         = null;
     var timer             = null;
@@ -20,10 +21,10 @@ Blockis = function() {
     var timerTickInterval = 0;
 
     // Public // 
-
     this.handleKeyPress = function(event) {
 
       var collision;
+
       if(started) {
         switch (event.charCode) {
           case gameConfig.Controls.rotateCounterClockwise :
@@ -121,7 +122,12 @@ Blockis = function() {
         var nLinesRemoved = matrix.removeCompleteLines();
         if(nLinesRemoved) {
           console.log("Cleared %d lines! (timertick)", nLinesRemoved);
+          audioManager.onLineClear(nLinesRemoved);
           matrix.paint();
+        } else { // normal lockdown
+          if (!harddrop) {
+            audioManager.onLockdown();  
+          }
         }
 
         if (harddrop) {
@@ -159,6 +165,8 @@ Blockis = function() {
     };
 
     this.start = function() {
+      audioManager.playMusic();
+      audioManager.onGameStart();
       tetrimino = nextTetrimino();
       tetrimino.paint();
       timerTickInterval = TIME_BETWEEN_TICKS;
@@ -180,6 +188,7 @@ Blockis = function() {
 
     this.startHarddrop = function() {
       harddrop = 1;
+      audioManager.onHarddrop();
       self.changeTimerTickInterval(1);
     };
 
@@ -348,8 +357,8 @@ Blockis = function() {
 
     var self = this;
 
-    var graphics   = aGraphics;
-    var gameConfig = aGameConfig;
+    var graphics     = aGraphics;
+    var gameConfig   = aGameConfig;
 
     var matrix = [[8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                   [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
@@ -561,6 +570,49 @@ Blockis = function() {
 
   };
 
+  AudioManager = function(aGameConfig) {
+
+    // Sound effects
+    var gameConfig     = aGameConfig;
+    var singleClear    = new Audio("sound/single.wav");
+    var doubleClear    = new Audio("sound/double.wav");
+    var tripleClear    = new Audio("sound/triple.wav");
+    var quadrupleClear = new Audio("sound/quadruple.wav");
+    var gameStart      = new Audio("sound/start.wav");
+    var lockdown       = new Audio("sound/lockdown.wav");
+    var harddrop       = new Audio("sound/harddrop.wav");
+
+    var music          = new Audio("music/LemmingsTim8.ogg");
+
+    this.onLineClear = function(nLines) {
+      if (nLines == 1) {
+        singleClear.play();
+      } else if (nLines == 2) {
+        doubleClear.play();
+      } else if (nLines == 3) {
+        tripleClear.play();
+      } else if (nLines == 4) {
+        quadrupleClear.play();
+      }
+    };
+
+    this.onGameStart = function() {
+      gameStart.play();
+    };
+
+    this.onLockdown = function() {
+      lockdown.play();
+    };
+
+    this.onHarddrop = function() {
+      harddrop.play();
+    };
+
+    this.playMusic = function() {
+      music.play();
+    }; 
+  };
+
   GameConfig = {
     // Touch this one and the game will behave *very* strange...
     TypeMap : {
@@ -577,14 +629,14 @@ Blockis = function() {
 
     Tetrimino : {
       I : {
-        color     : "green",
+        color     : "blue",
         layout    : [[0, 0, 0, 0],
                      [0, 0, 0, 0],
                      [1, 1, 1, 1],
                      [0, 0, 0, 0]]
       },
       T : {
-        color     : "blue",
+        color     : "purple",
         layout    : [[0, 0, 0, 0],
                      [0, 0, 2, 0],
                      [0, 2, 2, 2],
@@ -598,28 +650,28 @@ Blockis = function() {
                      [0, 0, 0, 0]]
       },
       L : {
-        color     : "red",
+        color     : "pink",
         layout    : [[0, 0, 0, 0],
                      [0, 0, 0, 4],
                      [0, 4, 4, 4],
                      [0, 0, 0, 0]]
       },
       O : {
-        color     : "cyan",
+        color     : "yellow",
         layout    : [[0, 0, 0, 0],
                      [0, 5, 5, 0],
                      [0, 5, 5, 0],
                      [0, 0, 0, 0]]
       },
       S : {
-        color     : "purple",
+        color     : "green",
         layout    : [[0, 0, 0, 0],
                      [0, 0, 6, 6],
                      [0, 6, 6, 0],
                      [0, 0, 0, 0]]
       },
       Z : {
-        color     :"yellow",
+        color     :"red",
         layout    : [[0, 0, 0, 0],
                      [0, 7, 7, 0],
                      [0, 0, 7, 7],
@@ -629,14 +681,17 @@ Blockis = function() {
         color     : "gray"
       }
     },
+
     Controls : {
-      moveLeft              : 104, // h
-      moveRight             : 108, // l
-      softdrop              : 106, // j
-      harddrop              : 107, // k
+      moveLeft               : 104, // h
+      moveRight              : 108, // l
+      softdrop               : 106, // j
+      harddrop               : 107, // k
       rotateClockwise        : 102, // f
       rotateCounterClockwise : 100 // d
-    }
+    },
+
+    music : ["music/LemmingsTim8.ogg"]
   };
 
   this.init = function() {
@@ -644,7 +699,8 @@ Blockis = function() {
 
     graphics = new Graphics();
     graphics.init(canvas);
-    engine = new Engine(graphics, GameConfig);
+    audioManager = new AudioManager();
+    engine = new Engine(graphics, audioManager, GameConfig);
     engine.init();
   };
 };
