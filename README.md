@@ -13,4 +13,3 @@ f - rotate block clockwise
 d - rotate block counter clockwise
 k - softdrop
 i - harddrop
-
