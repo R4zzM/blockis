@@ -26,8 +26,8 @@ Blockis = function() {
       var collision;
       if(started) {
         switch (event.charCode) {
-          case 100:
-            // d character. rotate clockwise
+          case gameConfig.Controls.rotateCounterClockwise :
+            // d character. rotate counter clockwise
             tetrimino.prerotateCounterClockwise();
             collision = matrix.overlappingCollisionCheck(tetrimino);
             if(!collision) {
@@ -39,7 +39,7 @@ Blockis = function() {
             }
             console.log("Counter clockwise rotation");
             break;
-            case 102:
+            case gameConfig.Controls.rotateClockwise:
             // f character. rotate clockwise
             tetrimino.prerotateClockwise();
             collision = matrix.overlappingCollisionCheck(tetrimino);
@@ -52,17 +52,8 @@ Blockis = function() {
             }
             console.log("Clockwise rotation");
             break;
-            case 105:
-            // i character. Harddrop
-            harddrop = 1;
-            self.startHarddrop();
-            // matrix.harddrop(tetrimino);
-            // tetrimino = nextTetrimino();
-            // tetrimino.paint();
-            console.log("Harddrop");
-            break;
-            case 106:
-            // move left
+            case gameConfig.Controls.moveLeft:
+            // h character. move left
             collision = matrix.leftSideCollisionCheck(tetrimino);
             if(!collision) {
               tetrimino.erase();
@@ -71,8 +62,8 @@ Blockis = function() {
             }
             console.log("Move left");
             break;
-            case 107:
-            // k character. softdrop.
+            case gameConfig.Controls.softdrop:
+            // j character. softdrop.
             collision = matrix.bottomSideCollisionCheck(tetrimino);
             if(!collision) {
               tetrimino.erase();
@@ -81,7 +72,13 @@ Blockis = function() {
             }
             console.log("Softdrop");
             break;
-            case 108:
+            case gameConfig.Controls.harddrop:
+            // k character. Harddrop
+            harddrop = 1;
+            self.startHarddrop();
+            console.log("Harddrop");
+            break;
+            case gameConfig.Controls.moveRight:
             // l character. move right.
             collision = matrix.rightSideCollisionCheck(tetrimino);
             if(!collision) {
@@ -207,19 +204,19 @@ Blockis = function() {
     getVblockForType = function(type) {
       switch (type) {
         case gameConfig.TypeMap.i:
-        return gameConfig.I.tetrimino.slice(0);
+        return gameConfig.Tetrimino.I.layout.slice(0);
         case gameConfig.TypeMap.t:
-        return gameConfig.T.tetrimino.slice(0);
+        return gameConfig.Tetrimino.T.layout.slice(0);
         case gameConfig.TypeMap.j:
-        return gameConfig.J.tetrimino.slice(0);
+        return gameConfig.Tetrimino.J.layout.slice(0);
         case gameConfig.TypeMap.l:
-        return gameConfig.L.tetrimino.slice(0);
+        return gameConfig.Tetrimino.L.layout.slice(0);
         case gameConfig.TypeMap.o:
-        return gameConfig.O.tetrimino.slice(0);
+        return gameConfig.Tetrimino.O.layout.slice(0);
         case gameConfig.TypeMap.s:
-        return gameConfig.S.tetrimino.slice(0);
+        return gameConfig.Tetrimino.S.layout.slice(0);
         case gameConfig.TypeMap.z:
-        return gameConfig.Z.tetrimino.slice(0);
+        return gameConfig.Tetrimino.Z.layout.slice(0);
         default:
           // to detect errors
           return [[1, 1, 1, 1],
@@ -322,24 +319,24 @@ Blockis = function() {
 
     getColorForType = function(type) {
       switch (type) {
-        case gameConfig.none:
+        case gameConfig.TypeMap.none:
         return "white";
         case gameConfig.TypeMap.i:
-        return gameConfig.I.color;
+        return gameConfig.Tetrimino.I.color;
         case gameConfig.TypeMap.j:
-        return gameConfig.J.color;
+        return gameConfig.Tetrimino.J.color;
         case gameConfig.TypeMap.o:
-        return gameConfig.O.color;
+        return gameConfig.Tetrimino.O.color;
         case gameConfig.TypeMap.t:
-        return gameConfig.T.color;
+        return gameConfig.Tetrimino.T.color;
         case gameConfig.TypeMap.l:
-        return gameConfig.L.color;
+        return gameConfig.Tetrimino.L.color;
         case gameConfig.TypeMap.s:
-        return gameConfig.S.color;
+        return gameConfig.Tetrimino.S.color;
         case gameConfig.TypeMap.z:
-        return gameConfig.Z.color;
+        return gameConfig.Tetrimino.Z.color;
         case gameConfig.TypeMap.border:
-        return gameConfig.Border.color;
+        return gameConfig.Tetrimino.Border.color;
         default:
         return null;
       }
@@ -476,23 +473,23 @@ Blockis = function() {
           if(matrix[row][col] == gameConfig.TypeMap.none) {
             graphics.eraseBlock(col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.i) {
-            graphics.drawBlock(gameConfig.I.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.I.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.j) {
-            graphics.drawBlock(gameConfig.J.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.J.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.t) {
-            graphics.drawBlock(gameConfig.T.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.T.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.o) {
-            graphics.drawBlock(gameConfig.O.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.O.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.l) {
-            graphics.drawBlock(gameConfig.L.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.L.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.s) {
-            graphics.drawBlock(gameConfig.S.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.S.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.z) {
-            graphics.drawBlock(gameConfig.Z.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.Z.color, col, row);
           } else if(matrix[row][col] == gameConfig.TypeMap.border) {
             // This one could be more efficient
             graphics.eraseBlock(col,row);
-            graphics.drawBlock(gameConfig.Border.color, col, row);
+            graphics.drawBlock(gameConfig.Tetrimino.Border.color, col, row);
           }
         }
       }
@@ -539,23 +536,24 @@ Blockis = function() {
 
     this.scaleCanvas = function() {
 
-      var aspectRatio = 12 / 21; // width / height. obvioius, right?
+      var nHorizontalBlocks = 14; // 12 visible and 2 invisible on each side
+      var nVerticalBlocks   = 23; // 21 visible and 2 invisible on each side
+
+      var aspectRatio = nHorizontalBlocks / nVerticalBlocks; // width / height. obvioius, right?
       var newWidth    = window.innerWidth;
       var newHeight   = window.innerHeight;
 
       if (newWidth / newHeight >= aspectRatio) {
         // normal case on a widescreen, extra area on the sides
         // blockSidePx is calculated based on height of screen
-        blockSidePx = Math.floor(newHeight / 21);
+        blockSidePx = Math.floor(newHeight / nVerticalBlocks);
       } else {
         // normal case on a phone or similar, extra area on top and bottom
         // blockSidePx is calculated based on width of screen
-        blockSidePx= Math.floor(newWidth / 12);
+        blockSidePx= Math.floor(newWidth / nHorizontalBlocks);
       }
-      canvas.width   = newWidth;
-      canvas.height  = newHeight;
-      xOffsetPx      = Math.floor((newWidth - blockSidePx * 12) / 2);
-      yOffsetPx      = Math.floor((newHeight - blockSidePx * 21) / 2);
+      xOffsetPx      = Math.floor((newWidth - blockSidePx * nHorizontalBlocks) / 2);
+      yOffsetPx      = Math.floor((newHeight - blockSidePx * nVerticalBlocks) / 2);
       canvas.width   = newWidth - xOffsetPx;
       canvas.height  = newHeight - yOffsetPx;
       
@@ -577,57 +575,67 @@ Blockis = function() {
       border : 8
     },
 
-    I : {
-      color     : "green",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 0, 0, 0],
-                   [1, 1, 1, 1],
-                   [0, 0, 0, 0]]
+    Tetrimino : {
+      I : {
+        color     : "green",
+        layout    : [[0, 0, 0, 0],
+                     [0, 0, 0, 0],
+                     [1, 1, 1, 1],
+                     [0, 0, 0, 0]]
+      },
+      T : {
+        color     : "blue",
+        layout    : [[0, 0, 0, 0],
+                     [0, 0, 2, 0],
+                     [0, 2, 2, 2],
+                     [0, 0, 0, 0]]
+      },
+      J : {
+        color     : "orange",
+        layout    : [[0, 0, 0, 0],
+                     [0, 3, 0, 0],
+                     [0, 3, 3, 3],
+                     [0, 0, 0, 0]]
+      },
+      L : {
+        color     : "red",
+        layout    : [[0, 0, 0, 0],
+                     [0, 0, 0, 4],
+                     [0, 4, 4, 4],
+                     [0, 0, 0, 0]]
+      },
+      O : {
+        color     : "cyan",
+        layout    : [[0, 0, 0, 0],
+                     [0, 5, 5, 0],
+                     [0, 5, 5, 0],
+                     [0, 0, 0, 0]]
+      },
+      S : {
+        color     : "purple",
+        layout    : [[0, 0, 0, 0],
+                     [0, 0, 6, 6],
+                     [0, 6, 6, 0],
+                     [0, 0, 0, 0]]
+      },
+      Z : {
+        color     :"yellow",
+        layout    : [[0, 0, 0, 0],
+                     [0, 7, 7, 0],
+                     [0, 0, 7, 7],
+                     [0, 0, 0, 0]]
+      },
+      Border : {
+        color     : "gray"
+      }
     },
-    T : {
-      color     : "blue",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 0, 2, 0],
-                   [0, 2, 2, 2],
-                   [0, 0, 0, 0]]
-    },
-    J : {
-      color     : "orange",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 3, 0, 0],
-                   [0, 3, 3, 3],
-                   [0, 0, 0, 0]]
-    },
-    L : {
-      color     : "red",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 0, 0, 4],
-                   [0, 4, 4, 4],
-                   [0, 0, 0, 0]]
-    },
-    O : {
-      color     : "cyan",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 5, 5, 0],
-                   [0, 5, 5, 0],
-                   [0, 0, 0, 0]],
-    },
-    S : {
-      color     : "purple",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 0, 6, 6],
-                   [0, 6, 6, 0],
-                   [0, 0, 0, 0]],
-    },
-    Z : {
-      color     :"yellow",
-      tetrimino : [[0, 0, 0, 0],
-                   [0, 7, 7, 0],
-                   [0, 0, 7, 7],
-                   [0, 0, 0, 0]]
-    },
-    Border : {
-      color     : "gray"
+    Controls : {
+      moveLeft              : 104, // h
+      moveRight             : 108, // l
+      softdrop              : 106, // j
+      harddrop              : 107, // k
+      rotateClockwise        : 102, // f
+      rotateCounterClockwise : 100 // d
     }
   };
 
