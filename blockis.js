@@ -1,26 +1,28 @@
 Blockis = function() {
 
   // Constants
-  var SQUARE_SIDE_PIXLES = 20;
   var BLOCK_SPAWN_ROW    = 0;
   var BLOCK_SPAWN_COL    = 3;
-  var TIME_BETWEEN_TICKS = 125; // millis
+  var TIME_BETWEEN_TICKS = 125;  // millis
+  var LOCKDOWN_INTERVAL  = 500; // millis
 
   Engine = function(aGraphics, aAudioManager, aGameConfig) {
 
     var self = this;
 
-    var gameConfig        = aGameConfig;
-    var graphics          = aGraphics;
-    var audioManager      = aAudioManager;
-    var matrix            = null;
-    var tetrimino         = null;
-    var timer             = null;
-    var started           = 0;
-    var harddrop          = 0;
-    var timerTickInterval = 0;
+    var gameConfig               = aGameConfig;
+    var graphics                 = aGraphics;
+    var audioManager             = aAudioManager;
+    var matrix                   = null;
+    var tetrimino                = null;
+    var started                  = 0;
+    var harddrop                 = 0;
+    var gravityTimer             = null;
+    var gravityTimerTickInterval = 0;
+    var lockdownTimer            = null;
+    var lockdownTimerRow         = -1;
 
-    // Public // 
+    // Public //
     this.handleKeyPress = function(event) {
 
       var collision;
@@ -35,6 +37,9 @@ Blockis = function() {
               tetrimino.erase();
               tetrimino.confirmRotation();
               tetrimino.paint();
+              if (lockdownTimer) {
+                self.stopLockdownTimer();
+              }
             } else {
               tetrimino.revokeRotation();
             }
@@ -48,6 +53,9 @@ Blockis = function() {
               tetrimino.erase();
               tetrimino.confirmRotation();
               tetrimino.paint();
+              if (lockdownTimer) {
+                self.stopLockdownTimer();
+              }
             } else {
               tetrimino.revokeRotation();
             }
@@ -64,9 +72,11 @@ Blockis = function() {
             console.log("Move left");
             break;
             case gameConfig.Controls.softdrop:
-            // j character. softdrop.
+            // j character. softdrop / lockdown.
             collision = matrix.bottomSideCollisionCheck(tetrimino);
-            if(!collision) {
+            if(collision) {
+              self.onLockdown();
+            } else {
               tetrimino.erase();
               tetrimino.updateVerticalPos();
               tetrimino.paint();
@@ -117,39 +127,56 @@ Blockis = function() {
     this.onTimerTick = function() {
       var collision = matrix.bottomSideCollisionCheck(tetrimino);
       if(collision) {
-        matrix.lockdown(tetrimino);
-
-        var nLinesRemoved = matrix.removeCompleteLines();
-        if(nLinesRemoved) {
-          console.log("Cleared %d lines! (timertick)", nLinesRemoved);
-          audioManager.onLineClear(nLinesRemoved);
-          matrix.paint();
-        } else { // normal lockdown
-          if (!harddrop) {
-            audioManager.onLockdown();  
+        if (lockdownTimer) {
+          if (tetrimino.offsetRow > lockdownTimerRow) {
+            // tetrimino has moved down, restart lockdown timer.
+            self.stopLockdownTimer();
+            self.startLockdownTimer(tetrimino.offsetRow);
           }
-        }
-
-        if (harddrop) {
-          self.stopHarddrop();
-        }
-        
-        tetrimino = nextTetrimino();
-        tetrimino.paint();
-
-        // if the new tetrimino has spawned inside an existing one its gameover
-        tetrimino.prerotateClockwise();
-        var gameover = matrix.overlappingCollisionCheck(tetrimino);
-        if(gameover) {
-          console.log("Overlapping collision on blockspawn. Gameover!");
-          self.stop();
         } else {
-          tetrimino.revokeRotation();
+          // first collision, start the lockdown timer
+          self.startLockdownTimer(tetrimino.offsetRow);
         }
       } else {
+        if (lockdownTimer) {
+          self.stopLockdownTimer();
+        }
         tetrimino.erase();
         tetrimino.updateVerticalPos();
         tetrimino.paint();
+      }
+    };
+
+    this.onLockdown = function() {
+
+      self.stopLockdownTimer();
+      
+      matrix.lockdown(tetrimino);
+
+      var nLinesRemoved = matrix.removeCompleteLines();
+      if(nLinesRemoved) {
+        console.log("Cleared %d lines! (gravityTimertick)", nLinesRemoved);
+        audioManager.onLineClear(nLinesRemoved);
+        matrix.paint();
+      } else { // normal lockdown
+        audioManager.onLockdown();
+      }
+
+      if (harddrop) {
+        self.stopHarddrop();
+      }
+      
+      tetrimino = nextTetrimino();
+      tetrimino.paint();
+
+      // if the new tetrimino has spawned inside an existing one its gameover
+      tetrimino.prerotateClockwise();
+      var gameover = matrix.overlappingCollisionCheck(tetrimino);
+      if(gameover) {
+        console.log("Overlapping collision on blockspawn. Gameover!");
+        self.stop();
+      } else {
+        tetrimino.revokeRotation();
       }
     };
 
@@ -169,21 +196,32 @@ Blockis = function() {
       audioManager.onGameStart();
       tetrimino = nextTetrimino();
       tetrimino.paint();
-      timerTickInterval = TIME_BETWEEN_TICKS;
-      timer = setInterval(self.onTimerTick, timerTickInterval);
+      gravityTimerTickInterval = TIME_BETWEEN_TICKS;
+      gravityTimer = setInterval(self.onTimerTick, gravityTimerTickInterval);
       started = 1;
       console.log("Blockis: The game has started!");
     };
 
     this.stop = function() {
-      clearInterval(timer);
+      clearInterval(gravityTimer);
       started = 0;
       console.log("Blockis: The game has stopped!");
     };
 
+    this.startLockdownTimer = function(row) {
+      lockdownTimer    = setInterval(self.onLockdown, LOCKDOWN_INTERVAL);
+      lockdownTimerRow = row;
+    };
+
+    this.stopLockdownTimer = function() {
+      clearInterval(lockdownTimer);
+      lockdownTimer    = null;
+      lockdownTimerRow = -1; 
+    };
+
     this.changeTimerTickInterval = function(interval) {
-      clearInterval(timer);
-      timer = setInterval(self.onTimerTick, interval);
+      clearInterval(gravityTimer);
+      gravityTimer = setInterval(self.onTimerTick, interval);
     };
 
     this.startHarddrop = function() {
@@ -194,7 +232,7 @@ Blockis = function() {
 
     this.stopHarddrop = function() {
       harddrop = 0;
-      self.changeTimerTickInterval(timerTickInterval);
+      self.changeTimerTickInterval(gravityTimerTickInterval);
     };
 
     // Private // 
@@ -537,6 +575,20 @@ Blockis = function() {
       }
     };
 
+    // TODO!!
+    this.lockdownAnimation = function(posX, posY) {
+
+      // Some stop value here...
+
+      // will call this method again when its time for a new frame...
+      window.requestAnimationFrame(self.lockdownAnimation);
+
+      // animation data. Must be "persisted"
+
+      // <- does the job, should be called something else.
+      self.drawAnimationFrame(); 
+    };
+
     this.eraseBlock = function(posX, posY) {
       var x = xOffsetPx + (posX * blockSidePx);
       var y = yOffsetPx + (posY * blockSidePx);
@@ -545,8 +597,8 @@ Blockis = function() {
 
     this.scaleCanvas = function() {
 
-      var nHorizontalBlocks = 14; // 12 visible and 2 invisible on each side
-      var nVerticalBlocks   = 23; // 21 visible and 2 invisible on each side
+      var nHorizontalBlocks = 14; // 12 visible and 1 invisible on each side
+      var nVerticalBlocks   = 23; // 21 visible and 1 invisible on each side
 
       var aspectRatio = nHorizontalBlocks / nVerticalBlocks; // width / height. obvioius, right?
       var newWidth    = window.innerWidth;
@@ -559,7 +611,7 @@ Blockis = function() {
       } else {
         // normal case on a phone or similar, extra area on top and bottom
         // blockSidePx is calculated based on width of screen
-        blockSidePx= Math.floor(newWidth / nHorizontalBlocks);
+        blockSidePx = Math.floor(newWidth / nHorizontalBlocks);
       }
       xOffsetPx      = Math.floor((newWidth - blockSidePx * nHorizontalBlocks) / 2);
       yOffsetPx      = Math.floor((newHeight - blockSidePx * nVerticalBlocks) / 2);
@@ -583,6 +635,7 @@ Blockis = function() {
     var harddrop       = new Audio("sound/harddrop.wav");
 
     var music          = new Audio("music/LemmingsTim8.ogg");
+    music.loop = 1;
 
     this.onLineClear = function(nLines) {
       if (nLines == 1) {
@@ -605,6 +658,7 @@ Blockis = function() {
     };
 
     this.onHarddrop = function() {
+      harddrop.currentTime = 0;
       harddrop.play();
     };
 
