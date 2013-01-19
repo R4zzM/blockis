@@ -1,44 +1,17 @@
 Blockis = function() {
 
-  // Images
-  var borderBlock = new Image();
-  borderBlock.src = "img_border.png";
-
-  var backgroundBlock = new Image();
-  backgroundBlock.src = "img_background.png";
-
-  var iBlock = new Image();
-  iBlock.src = "img_I.png";
-
-  var tBlock = new Image();
-  tBlock.src = "img_T.png";
-
-  var lBlock = new Image();
-  lBlock.src = "img_L.png";
-
-  var jBlock = new Image();
-  jBlock.src = "img_J.png";
-
-  var oBlock = new Image();
-  oBlock.src = "img_O.png";
-
-  var sBlock = new Image();
-  sBlock.src = "img_S.png";
-
-  var zBlock = new Image();
-  zBlock.src = "img_Z.png";
-
   // Constants
   var SQUARE_SIDE_PIXLES = 20;
   var BLOCK_SPAWN_ROW    = 0;
   var BLOCK_SPAWN_COL    = 3;
   var TIME_BETWEEN_TICKS = 125; // millis
 
-  Engine = function(aCtx) {
+  Engine = function(aGraphics, aGameConfig) {
 
     var self = this;
 
-    var ctx               = aCtx;
+    var gameConfig        = aGameConfig;
+    var graphics          = aGraphics;
     var matrix            = null;
     var tetrimino         = null;
     var timer             = null;
@@ -46,10 +19,11 @@ Blockis = function() {
     var harddrop          = 0;
     var timerTickInterval = 0;
 
+    // Public // 
+
     this.handleKeyPress = function(event) {
 
       var collision;
-
       if(started) {
         switch (event.charCode) {
           case 100:
@@ -132,10 +106,14 @@ Blockis = function() {
       }
     };
 
-    this.nextTetrimino = function() {
-      var type = Math.round(Math.random() * 6) + 1;
-      console.log("New Block! Type = %d", type);
-      return new Tetrimino(type);
+    this.handleWindowResize = function() {
+      graphics.scaleCanvas();
+      if (matrix) {
+        matrix.paint();
+      }
+      if (tetrimino) {
+        tetrimino.paint();
+      }
     };
 
     this.onTimerTick = function() {
@@ -153,7 +131,7 @@ Blockis = function() {
           self.stopHarddrop();
         }
         
-        tetrimino = self.nextTetrimino();
+        tetrimino = nextTetrimino();
         tetrimino.paint();
 
         // if the new tetrimino has spawned inside an existing one its gameover
@@ -173,14 +151,18 @@ Blockis = function() {
     };
 
     this.init = function() {
-      matrix = new Matrix();
-      matrix.paint();
+      // Set event handlers
       document.onkeypress = self.handleKeyPress;
+      window.onresize = self.handleWindowResize;
+
+      // Init the matrix
+      matrix = new Matrix(graphics, gameConfig);
+      matrix.paint();
       console.log("Blockis: The game is ready to be started!");
     };
 
     this.start = function() {
-      tetrimino = self.nextTetrimino();
+      tetrimino = nextTetrimino();
       tetrimino.paint();
       timerTickInterval = TIME_BETWEEN_TICKS;
       timer = setInterval(self.onTimerTick, timerTickInterval);
@@ -208,22 +190,59 @@ Blockis = function() {
       harddrop = 0;
       self.changeTimerTickInterval(timerTickInterval);
     };
+
+    // Private // 
+
+    nextTetrimino = function() {
+      var type = Math.round(Math.random() * 6) + 1;
+      console.log("New Block! Type = %d", type);
+      return new Tetrimino(type, graphics, gameConfig);
+    };
   };
 
   // A (virtual) block that the player is controlling
-  Tetrimino = function(type) {
+  Tetrimino = function(aType, aGraphics, aGameConfig) {
+
+    // Ugly !!! Fix!!!
+    getVblockForType = function(type) {
+      switch (type) {
+        case gameConfig.TypeMap.i:
+        return gameConfig.I.tetrimino.slice(0);
+        case gameConfig.TypeMap.t:
+        return gameConfig.T.tetrimino.slice(0);
+        case gameConfig.TypeMap.j:
+        return gameConfig.J.tetrimino.slice(0);
+        case gameConfig.TypeMap.l:
+        return gameConfig.L.tetrimino.slice(0);
+        case gameConfig.TypeMap.o:
+        return gameConfig.O.tetrimino.slice(0);
+        case gameConfig.TypeMap.s:
+        return gameConfig.S.tetrimino.slice(0);
+        case gameConfig.TypeMap.z:
+        return gameConfig.Z.tetrimino.slice(0);
+        default:
+          // to detect errors
+          return [[1, 1, 1, 1],
+                  [1, 1, 1, 1],
+                  [1, 1, 1, 1],
+                  [1, 1, 1, 1]];
+        }
+      };
+
+    var graphics   = aGraphics;
+    var gameConfig = aGameConfig;
 
     this.offsetRow     = 0;
     this.offsetCol     = 3;
     this.lastOffsetRow = 0;
     this.lastOffsetCol = 3;
 
-    this.type             = type;
-    this.vblock           = this.getDataForType(this.type);
+    this.type             = aType;
+    this.vblock           = getVblockForType(this.type);
     this.prerotatedVblock = [[0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0]];
+                             [0, 0, 0, 0],
+                             [0, 0, 0, 0],
+                             [0, 0, 0, 0]];
 
     // tmp variable to rotate blocks
     this.prerotateClockwise = function() {
@@ -244,17 +263,19 @@ Blockis = function() {
 
     this.confirmRotation = function() {
       this.vblock = this.prerotatedVblock;
-      this.prerotatedVblock = [[0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0]];
+      this.prerotatedVblock = 
+      [[0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0]];
     };
 
     this.revokeRotation = function() {
-      this.prerotatedVblock = [[0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0]];
+      this.prerotatedVblock = 
+      [[0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0]];
     };
 
     this.erase = function() {
@@ -262,24 +283,23 @@ Blockis = function() {
       for(var i = 0; i < 4; i++) {
         for(var j = 0; j < 4; j++) {
           if(this.vblock[i][j] > 0) {
-            context.drawImage(backgroundBlock, (this.offsetCol + j) * SQUARE_SIDE_PIXLES, (this.offsetRow + i) * SQUARE_SIDE_PIXLES);
+            graphics.eraseBlock(this.offsetCol + j, this.offsetRow + i);
           }
         }
       }
     };
 
-    // Paint the block on screen.
     this.paint = function() {
 
       var i;
       var j;
 
-      // Paint the new position
       for(i = 0; i < 4; i++) {
         for(j = 0; j < 4; j++) {
           if(this.vblock[i][j] > 0) {
-            var blockType = this.vblock[i][j];
-            context.drawImage(this.getImageForType(blockType), (this.offsetCol + j) * SQUARE_SIDE_PIXLES, (this.offsetRow + i) * SQUARE_SIDE_PIXLES);
+            var type  = this.vblock[i][j];
+            var color = getColorForType(type);
+            graphics.drawBlock(color, this.offsetCol + j, this.offsetRow + i);
           }
         }
       }
@@ -299,99 +319,40 @@ Blockis = function() {
       this.lastOffsetCol = this.offsetCol;
       this.offsetCol++;
     };
-  };
 
-  Tetrimino.prototype = {
-    i : [[0, 0, 0, 0],
-         [0, 0, 0, 0],
-         [1, 1, 1, 1],
-         [0, 0, 0, 0]],
-
-    t : [[0, 0, 0, 0],
-         [0, 0, 2, 0],
-         [0, 2, 2, 2],
-         [0, 0, 0, 0]],
-
-    j : [[0, 0, 0, 0],
-         [0, 3, 0, 0],
-         [0, 3, 3, 3],
-         [0, 0, 0, 0]],
-
-    l : [[0, 0, 0, 0],
-         [0, 0, 0, 4],
-         [0, 4, 4, 4],
-         [0, 0, 0, 0]],
-
-    o : [[0, 0, 0, 0],
-         [0, 5, 5, 0],
-         [0, 5, 5, 0],
-         [0, 0, 0, 0]],
-
-    s : [[0, 0, 0, 0],
-         [0, 0, 6, 6],
-         [0, 6, 6, 0],
-         [0, 0, 0, 0]],
-
-    z : [[0, 0, 0, 0],
-         [0, 7, 7, 0],
-         [0, 0, 7, 7],
-         [0, 0, 0, 0]],
-
-    getImageForType : function(type) {
+    getColorForType = function(type) {
       switch (type) {
-        case 0:
-        return backgroundBlock;
-        case 1:
-        return iBlock;
-        case 2:
-        return tBlock;
-        case 3:
-        return jBlock;
-        case 4:
-        return lBlock;
-        case 5:
-        return oBlock;
-        case 6:
-        return sBlock;
-        case 7:
-        return zBlock;
-        case 8:
-        return borderBlock;
+        case gameConfig.none:
+        return "white";
+        case gameConfig.TypeMap.i:
+        return gameConfig.I.color;
+        case gameConfig.TypeMap.j:
+        return gameConfig.J.color;
+        case gameConfig.TypeMap.o:
+        return gameConfig.O.color;
+        case gameConfig.TypeMap.t:
+        return gameConfig.T.color;
+        case gameConfig.TypeMap.l:
+        return gameConfig.L.color;
+        case gameConfig.TypeMap.s:
+        return gameConfig.S.color;
+        case gameConfig.TypeMap.z:
+        return gameConfig.Z.color;
+        case gameConfig.TypeMap.border:
+        return gameConfig.Border.color;
         default:
         return null;
       }
-    },
-
-    getDataForType : function(type) {
-      switch (type) {
-        case 1:
-        return this.i.slice(0);
-        case 2:
-        return this.t.slice(0);
-        case 3:
-        return this.j.slice(0);
-        case 4:
-        return this.l.slice(0);
-        case 5:
-        return this.o.slice(0);
-        case 6:
-        return this.s.slice(0);
-        case 7:
-        return this.z.slice(0);
-        default:
-          // to detect errors
-          return [[1, 1, 1, 1],
-                  [1, 1, 1, 1],
-                  [1, 1, 1, 1],
-                  [1, 1, 1, 1]];
-        }
-      }
     };
+  };
 
   // The matrix in which the blocks falls down.
-  Matrix = function() {
+  Matrix = function(aGraphics, aGameConfig) {
 
     var self = this;
+
+    var graphics   = aGraphics;
+    var gameConfig = aGameConfig;
 
     var matrix = [[8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
                   [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8],
@@ -477,9 +438,9 @@ Blockis = function() {
     };
 
     this.removeCompleteLines = function() {
+
       var removeRow    = 0;
       var nRowsRemoved = 0;
-
       var row = 0;
       var col = 0;
 
@@ -503,7 +464,6 @@ Blockis = function() {
             }
             // add a "clean" row on the top of the matrix
             matrix[0] = [8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8];
-
             nRowsRemoved++;
         }
       }
@@ -513,35 +473,170 @@ Blockis = function() {
     this.paint = function() {
       for(var row = 0; row < matrix.length; row++) {
         for(var col = 0; col < matrix[row].length; col++) {
-          if(matrix[row][col] === 0) {
-            context.drawImage(backgroundBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 1) {
-            context.drawImage(iBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 2) {
-            context.drawImage(tBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 3) {
-            context.drawImage(jBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 4) {
-            context.drawImage(lBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 5) {
-            context.drawImage(oBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 6) {
-            context.drawImage(sBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 7) {
-            context.drawImage(zBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
-          } else if(matrix[row][col] === 8) {
-            context.drawImage(borderBlock, col * SQUARE_SIDE_PIXLES, row * SQUARE_SIDE_PIXLES);
+          if(matrix[row][col] == gameConfig.TypeMap.none) {
+            graphics.eraseBlock(col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.i) {
+            graphics.drawBlock(gameConfig.I.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.j) {
+            graphics.drawBlock(gameConfig.J.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.t) {
+            graphics.drawBlock(gameConfig.T.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.o) {
+            graphics.drawBlock(gameConfig.O.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.l) {
+            graphics.drawBlock(gameConfig.L.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.s) {
+            graphics.drawBlock(gameConfig.S.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.z) {
+            graphics.drawBlock(gameConfig.Z.color, col, row);
+          } else if(matrix[row][col] == gameConfig.TypeMap.border) {
+            // This one could be more efficient
+            graphics.eraseBlock(col,row);
+            graphics.drawBlock(gameConfig.Border.color, col, row);
           }
         }
       }
     };
   };
 
+  Graphics = function() {
+
+    var self = this;
+
+    var canvas         = null;
+    var ctx            = null;
+    var xOffsetPx      = 0;
+    var yOffsetPx      = 0;
+    var blockSidePx    = 0;
+
+    this.init = function(aCanvas) {
+      canvas         = aCanvas;
+      ctx            = canvas.getContext("2d");
+      self.scaleCanvas();
+    };
+
+    this.drawBlock = function(color, posX, posY) {
+      var x = xOffsetPx + (posX * blockSidePx);
+      var y = yOffsetPx + (posY * blockSidePx);
+
+      ctx.fillStyle = color;
+      ctx.fillRect(x,y, blockSidePx - 1, blockSidePx - 1);
+
+      ctx.strokeStyle = "black";
+      ctx.lineWidth   = 1;
+
+      // Draw many times to get darker color.
+      for (var i = 0; i < 3; i++) {
+        ctx.strokeRect(x + 1, y + 1, blockSidePx - 1*2, blockSidePx - 1*2);
+      }
+    };
+
+    this.eraseBlock = function(posX, posY) {
+      var x = xOffsetPx + (posX * blockSidePx);
+      var y = yOffsetPx + (posY * blockSidePx);
+      ctx.clearRect(x,y, blockSidePx, blockSidePx);
+    };
+
+    this.scaleCanvas = function() {
+
+      var aspectRatio = 12 / 21; // width / height. obvioius, right?
+      var newWidth    = window.innerWidth;
+      var newHeight   = window.innerHeight;
+
+      if (newWidth / newHeight >= aspectRatio) {
+        // normal case on a widescreen, extra area on the sides
+        // blockSidePx is calculated based on height of screen
+        blockSidePx = Math.floor(newHeight / 21);
+      } else {
+        // normal case on a phone or similar, extra area on top and bottom
+        // blockSidePx is calculated based on width of screen
+        blockSidePx= Math.floor(newWidth / 12);
+      }
+      canvas.width   = newWidth;
+      canvas.height  = newHeight;
+      xOffsetPx      = Math.floor((newWidth - blockSidePx * 12) / 2);
+      yOffsetPx      = Math.floor((newHeight - blockSidePx * 21) / 2);
+      canvas.width   = newWidth - xOffsetPx;
+      canvas.height  = newHeight - yOffsetPx;
+      
+    };
+
+  };
+
+  GameConfig = {
+    // Touch this one and the game will behave *very* strange...
+    TypeMap : {
+      none   : 0,
+      i      : 1,
+      t      : 2,
+      j      : 3,
+      l      : 4,
+      o      : 5,
+      s      : 6,
+      z      : 7,
+      border : 8
+    },
+
+    I : {
+      color     : "green",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 0, 0, 0],
+                   [1, 1, 1, 1],
+                   [0, 0, 0, 0]]
+    },
+    T : {
+      color     : "blue",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 0, 2, 0],
+                   [0, 2, 2, 2],
+                   [0, 0, 0, 0]]
+    },
+    J : {
+      color     : "orange",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 3, 0, 0],
+                   [0, 3, 3, 3],
+                   [0, 0, 0, 0]]
+    },
+    L : {
+      color     : "red",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 0, 0, 4],
+                   [0, 4, 4, 4],
+                   [0, 0, 0, 0]]
+    },
+    O : {
+      color     : "cyan",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 5, 5, 0],
+                   [0, 5, 5, 0],
+                   [0, 0, 0, 0]],
+    },
+    S : {
+      color     : "purple",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 0, 6, 6],
+                   [0, 6, 6, 0],
+                   [0, 0, 0, 0]],
+    },
+    Z : {
+      color     :"yellow",
+      tetrimino : [[0, 0, 0, 0],
+                   [0, 7, 7, 0],
+                   [0, 0, 7, 7],
+                   [0, 0, 0, 0]]
+    },
+    Border : {
+      color     : "gray"
+    }
+  };
+
   this.init = function() {
     canvas = document.getElementById("blockis");
-    context = canvas.getContext("2d");
 
-    engine = new Engine(context);
+    graphics = new Graphics();
+    graphics.init(canvas);
+    engine = new Engine(graphics, GameConfig);
     engine.init();
   };
 };
