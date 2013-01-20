@@ -104,13 +104,7 @@ Blockis = function() {
           // do nothing
         }
       } else {
-        switch (event.charCode) {
-          case 0:
-          self.start();
-          break;
-          default:
-          console.log("Unhandled keycode: %d", event.charCode);
-        }
+        self.start();
       }
     };
 
@@ -204,6 +198,7 @@ Blockis = function() {
     this.stop = function() {
       clearInterval(gravityTimer);
       audioManager.stopMusic();
+      graphics.printGameOverText();
       started = 0;
       console.log("Blockis: The game has stopped!");
     };
