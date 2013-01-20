@@ -16,7 +16,7 @@ d - rotate block counter clockwise<br/>
 k - softdrop / lockdown<br/>
 l - harddrop<br/>
 
-<b>The Backlog<b/><br/>
+<b>The Backlog</b><br/>
 Ranked by priority:
 - Code cleanup.
 - A start up screen that tells the user to 'press any key to start' along
