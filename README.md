@@ -8,7 +8,7 @@ To tryout the game just point your browser to r4zzm.github.com/blockis
 Press any button to start the game once the page has loaded. To play again 
 after a failure just refresh the page.  
 
-The vim-naviagation inspired controlscheme is the following:
+The vim-naviagation inspired controlscheme is the following:<br/>
 h - move block left<br/>
 l - move block right<br/>
 f - rotate block clockwise<br/>
