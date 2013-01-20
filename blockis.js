@@ -152,15 +152,14 @@ Blockis = function() {
       self.stopLockdownTimer();
       
       matrix.lockdown(tetrimino);
-
       var nLinesRemoved = matrix.removeCompleteLines();
       if(nLinesRemoved) {
         console.log("Cleared %d lines! (gravityTimertick)", nLinesRemoved);
         audioManager.onLineClear(nLinesRemoved);
-        matrix.paint();
       } else { // normal lockdown
         audioManager.onLockdown();
       }
+      matrix.paint();
 
       if (harddrop) {
         self.stopHarddrop();
@@ -428,7 +427,8 @@ Blockis = function() {
       for(var i = 0; i < 4; i++) {
         for(var j = 0; j < 4; j++) {
           if(tetrimino.vblock[i][j] > 0) {
-            matrix[row + i][col + j] = tetrimino.vblock[i][j];
+            // matrix[row + i][col + j] = tetrimino.vblock[i][j];
+            matrix[row + i][col + j] = 8;
           }
         }
       }
@@ -576,20 +576,6 @@ Blockis = function() {
       }
     };
 
-    // TODO!!
-    this.lockdownAnimation = function(posX, posY) {
-
-      // Some stop value here...
-
-      // will call this method again when its time for a new frame...
-      window.requestAnimationFrame(self.lockdownAnimation);
-
-      // animation data. Must be "persisted"
-
-      // <- does the job, should be called something else.
-      self.drawAnimationFrame(); 
-    };
-
     this.eraseBlock = function(posX, posY) {
       var x = xOffsetPx + (posX * blockSidePx);
       var y = yOffsetPx + (posY * blockSidePx);
@@ -675,7 +661,8 @@ Blockis = function() {
 
     getRandomSong = function() {
       var nSongs = gameConfig.music.length;
-      var idx    = Math.round(Math.random() * nSongs);
+      var idx    = Math.floor(Math.random() * nSongs);
+      console.log("Playing song at idx: %d", idx);
       return new Audio(gameConfig.music[idx]);
     };
   };
@@ -755,7 +742,7 @@ Blockis = function() {
       softdrop               : 106, // j
       harddrop               : 107, // k
       rotateClockwise        : 102, // f
-      rotateCounterClockwise : 100 // d
+      rotateCounterClockwise : 100  // d
     },
 
     music : ["music/LemmingsTim8.ogg",
