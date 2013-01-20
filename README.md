@@ -4,9 +4,9 @@ Blockis
 A Tetris-like game, built using HTML5 and JS.
 
 <b>Instructions</b><br>
-To tryout the game just point your browser to r4zzm.github.com/blockis
+To tryout the game just point your browser to: <url>r4zzm.github.com/blockis</url><br/>
 Press any button to start the game once the page has loaded. To play again 
-after a failure just refresh the page.  
+after gameover just refresh the page.  
 
 The vim-naviagation inspired controlscheme is the following:<br/>
 h - move block left<br/>
