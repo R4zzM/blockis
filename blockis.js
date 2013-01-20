@@ -204,6 +204,7 @@ Blockis = function() {
 
     this.stop = function() {
       clearInterval(gravityTimer);
+      audioManager.stopMusic();
       started = 0;
       console.log("Blockis: The game has stopped!");
     };
@@ -665,6 +666,11 @@ Blockis = function() {
     this.playMusic = function() {
       music.play();
     }; 
+
+    this.stopMusic = function() {
+      music.currentTime = 0;
+      music.pause();
+    };
   };
 
   GameConfig = {
