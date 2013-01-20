@@ -3,7 +3,7 @@ Blockis = function() {
   // Constants
   var BLOCK_SPAWN_ROW    = 0;
   var BLOCK_SPAWN_COL    = 3;
-  var TIME_BETWEEN_TICKS = 125;  // millis
+  var TIME_BETWEEN_TICKS = 100;  // millis
   var LOCKDOWN_INTERVAL  = 800; // millis
 
   Engine = function(aGraphics, aAudioManager, aGameConfig) {
