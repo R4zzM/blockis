@@ -4,7 +4,7 @@ Blockis = function() {
   var BLOCK_SPAWN_ROW    = 0;
   var BLOCK_SPAWN_COL    = 3;
   var TIME_BETWEEN_TICKS = 125;  // millis
-  var LOCKDOWN_INTERVAL  = 500; // millis
+  var LOCKDOWN_INTERVAL  = 800; // millis
 
   Engine = function(aGraphics, aAudioManager, aGameConfig) {
 
@@ -635,8 +635,7 @@ Blockis = function() {
     var lockdown       = new Audio("sound/lockdown.wav");
     var harddrop       = new Audio("sound/harddrop.wav");
 
-    var music          = new Audio("music/LemmingsTim8.ogg");
-    music.loop = 1;
+    var currentBgMusic = null;
 
     this.onLineClear = function(nLines) {
       if (nLines == 1) {
@@ -664,12 +663,20 @@ Blockis = function() {
     };
 
     this.playMusic = function() {
-      music.play();
-    }; 
+      currentBgMusic = getRandomSong();
+      currentBgMusic.loop = 1;
+      currentBgMusic.play();
+    };
 
     this.stopMusic = function() {
-      music.currentTime = 0;
-      music.pause();
+      currentBgMusic.currentTime = 0;
+      currentBgMusic.pause();
+    };
+
+    getRandomSong = function() {
+      var nSongs = gameConfig.music.length;
+      var idx    = Math.round(Math.random() * nSongs);
+      return new Audio(gameConfig.music[idx]);
     };
   };
 
@@ -751,7 +758,11 @@ Blockis = function() {
       rotateCounterClockwise : 100 // d
     },
 
-    music : ["music/LemmingsTim8.ogg"]
+    music : ["music/LemmingsTim8.ogg",
+             "music/LemmingsTim1.ogg",
+             "music/LemmingsMusic1.ogg",
+             "music/LemmingsMusic2.ogg"
+            ]
   };
 
   this.init = function() {
@@ -759,7 +770,7 @@ Blockis = function() {
 
     graphics = new Graphics();
     graphics.init(canvas);
-    audioManager = new AudioManager();
+    audioManager = new AudioManager(GameConfig);
     engine = new Engine(graphics, audioManager, GameConfig);
     engine.init();
   };
