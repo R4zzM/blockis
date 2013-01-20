@@ -561,25 +561,24 @@ Blockis = function() {
     };
 
     this.drawBlock = function(color, posX, posY) {
-      var x = xOffsetPx + (posX * blockSidePx);
-      var y = yOffsetPx + (posY * blockSidePx);
+      var x =  xOffsetPx + (posX * blockSidePx);
+      var y =  yOffsetPx + (posY * blockSidePx);
 
       ctx.fillStyle = color;
-      ctx.fillRect(x,y, blockSidePx - 1, blockSidePx - 1);
+      ctx.fillRect(x, y, blockSidePx, blockSidePx);
 
       ctx.strokeStyle = "black";
       ctx.lineWidth   = 1;
 
-      // Draw many times to get darker color.
-      for (var i = 0; i < 3; i++) {
-        ctx.strokeRect(x + 1, y + 1, blockSidePx - 1*2, blockSidePx - 1*2);
-      }
+      // if the numbers look strange look it up in a html5 manual,
+      // diveintohtml5.info has a fact square about it...
+      ctx.strokeRect(x + 1.5, y + 1.5, blockSidePx - 2, blockSidePx - 2);
     };
 
     this.eraseBlock = function(posX, posY) {
       var x = xOffsetPx + (posX * blockSidePx);
       var y = yOffsetPx + (posY * blockSidePx);
-      ctx.clearRect(x,y, blockSidePx, blockSidePx);
+      ctx.clearRect(x, y, blockSidePx, blockSidePx);
     };
 
     this.scaleCanvas = function() {
