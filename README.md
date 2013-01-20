@@ -3,13 +3,29 @@ Blockis
 
 A Tetris-like game, built using HTML5 and JS.
 
-Just download everything and open index.html in your browser and the game will start automatically. 
-Refresh the page in the browser to reset / restart the game.
+<b>Instructions</b>
+To tryout the game just point your browser to r4zzm.github.com/blockis
+Press any button to start the game once the page has loaded. To play again 
+after a failure just refresh the page.  
 
-Controls: 
-j - move block left
-l - move block right
-f - rotate block clockwise
-d - rotate block counter clockwise
-k - softdrop
-i - harddrop
+The vim-naviagation inspired controlscheme is the following:
+h - move block left<br/>
+l - move block right<br/>
+f - rotate block clockwise<br/>
+d - rotate block counter clockwise<br/>
+k - softdrop / lockdown<br/>
+l - harddrop<br/>
+
+<b>The Backlog<b/>
+Ranked by priority:
+- Code cleanup.
+- A start up screen that tells the user to 'press any key to start' along
+with instructions on the controls.
+- Fixing the rotation system. Today it is as undefined as it can be. There is 
+also a known issue (the only one known) where is it possible to keep a piece 
+alive for an endless duration as long as it is being rotated. This was
+introduced to fix another bug. Anyway, the game should implement some kind of 
+known "tetris-clone" rotation system and not an arbitrary one.
+- "Next piece"
+- Score.
+- Everything else.
